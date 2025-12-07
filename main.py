@@ -7,7 +7,14 @@ FIGMA_TOKEN = "YOUR_FIGMA_TOKEN"
 FILE_KEY = "YOUR_FILE_KEY"
 COLORS_OUTPUT = 'colors.xml'
 TEXTSTYLES_OUTPUT = 'text_font_style.dart'
-# ========================
+
+# Fallback fonts configuration
+FALLBACK_FONTS = [
+    'Open Sans',
+    'Roboto',
+    'Noto Sans',
+]
+
 
 headers = {
     "X-Figma-Token": FIGMA_TOKEN
@@ -89,7 +96,7 @@ def process_figma_file():
             fontName = re.sub(r'\W+', '', fontFamily)
             
             # Create style name
-            style_name = f"text{fontSize}c{color}w{fontWeight}{fontName}"
+            style_name = f"textStyle{fontSize}c{color}{fontName}{fontWeight}"
             
             # Create style definition
             style_def = {
@@ -154,7 +161,18 @@ import 'package:screnzo85_app/gen/colors.gen.dart';
 class TextFontStyle {
   TextFontStyle._();
 
+  // Fallback Fonts
+  static const fallbackFonts = [
 '''
+    
+    # Generate fallback fonts list
+    for font in FALLBACK_FONTS:
+        dart_content += f"    '{font}',\n"
+        
+    dart_content += '''  ];
+
+'''
+
     
     for style in sorted_styles:
         font_family = style['fontFamily']
@@ -162,6 +180,7 @@ class TextFontStyle {
         
         dart_content += f'''  static final {style['name']} = TextStyle(
     fontFamily: "{font_family}",
+    fontFamilyFallback: fallbackFonts,
     color: AppColors.{color_name},
     fontSize: {style['fontSize']}.sp,
     fontWeight: FontWeight.w{style['fontWeight']},

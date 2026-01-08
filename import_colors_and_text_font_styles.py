@@ -3,8 +3,8 @@ import re
 import os
 
 # ===== CONFIGURATION =====
-FIGMA_TOKEN = "YOUR_FIGMA_TOKEN"
-FILE_KEY = "YOUR_FILE_KEY"
+FIGMA_TOKEN = "figma_token"
+FILE_KEY = "file_key"
 COLORS_OUTPUT = 'colors.xml'
 TEXTSTYLES_OUTPUT = 'text_font_style.dart'
 

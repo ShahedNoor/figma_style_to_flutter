@@ -1,10 +1,13 @@
 import requests
 import re
 import os
+import sys
 
 # ===== CONFIGURATION =====
 FIGMA_TOKEN = "figma_token"
 FILE_KEY = "file_key"
+NODE_ID = "node_id"  # The ID of the specific node/frame to process
+
 COLORS_OUTPUT = 'colors.xml'
 TEXTSTYLES_OUTPUT = 'text_font_style.dart'
 
@@ -14,7 +17,6 @@ FALLBACK_FONTS = [
     'Roboto',
     'Noto Sans',
 ]
-
 
 headers = {
     "X-Figma-Token": FIGMA_TOKEN
@@ -62,9 +64,9 @@ def parse_text_style(node):
 # ===== MAIN PROCESSING =====
 
 def process_figma_file():
-    """Fetch Figma file and process colors and text styles."""
-    print("Fetching Figma file...")
-    url = f"https://api.figma.com/v1/files/{FILE_KEY}"
+    """Fetch Figma node and process colors and text styles."""
+    print(f"Fetching Figma node {NODE_ID} from file {FILE_KEY}...")
+    url = f"https://api.figma.com/v1/files/{FILE_KEY}/nodes?ids={NODE_ID}"
     response = requests.get(url, headers=headers)
     
     if response.status_code != 200:
@@ -72,7 +74,7 @@ def process_figma_file():
         return
     
     figma_data = response.json()
-    print("✅ Figma file fetched successfully")
+    print("✅ Figma data fetched successfully")
     
     # Process colors and text styles
     colors = {}  # Use dict to store unique colors with names
@@ -118,8 +120,28 @@ def process_figma_file():
             for child in node["children"]:
                 parse_node(child)
     
-    # Start parsing from document root
-    parse_node(figma_data["document"])
+    # Extract the specific node data
+    nodes_map = figma_data.get("nodes", {})
+    # Note: Figma API can be tricky with exact ID formatting in keys (e.g. escaping), 
+    # but usually it matches the requested ID.
+    target_node_data = nodes_map.get(NODE_ID)
+    
+    if not target_node_data:
+        # Fallback: try to find the node if the key is slightly different or just take the first one
+        if len(nodes_map) == 1:
+            target_node_data = list(nodes_map.values())[0]
+            print(f"⚠️  Note: Used the single available node in response, key was: {list(nodes_map.keys())[0]}")
+        else:
+            print(f"❌ Node {NODE_ID} not found in response keys: {list(nodes_map.keys())}")
+            return
+
+    root_node = target_node_data.get("document")
+    if not root_node:
+         print(f"❌ Document structure not found for node {NODE_ID}.")
+         return
+         
+    # Start parsing from the target node
+    parse_node(root_node)
     
     # Save colors
     save_colors_xml(colors)
@@ -200,8 +222,11 @@ class TextFontStyle {
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Figma Color & TextStyle Generator")
+    print("Figma Color & TextStyle Generator (By Node ID)")
     print("=" * 60)
+    
+    if "figma_token" in FIGMA_TOKEN or "file_key" in FILE_KEY or "node_id" in NODE_ID:
+        print("⚠️  WARNING: Please update configuration with actual Token, File Key, and Node ID.")
     
     # Create output directory if it doesn't exist
     os.makedirs(os.path.dirname(COLORS_OUTPUT) if os.path.dirname(COLORS_OUTPUT) else '.', exist_ok=True)
